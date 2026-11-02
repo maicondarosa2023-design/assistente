@@ -1,0 +1,14 @@
+{
+  "name": "Assistente com IA",
+  "short_name": "Assistente",
+  "description": "Assistente por voz com agentes que aprendem com sua rotina",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f1222",
+  "theme_color": "#0f1222",
+  "lang": "pt-BR",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f1222">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg">
+<title>Assistente</title>
+<style>
+:root{--bg:#0f1222;--card:#1a1f38;--card2:#232948;--tx:#eef0ff;--mut:#9aa0c7;--acc:#7c8cff;--acc2:#4de0c0;--warn:#ffb86b;--bad:#ff6b8a}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--tx);font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+#app{display:flex;flex-direction:column;height:100%;max-width:560px;margin:0 auto}
+header{display:flex;align-items:center;justify-content:space-between;padding:calc(12px + env(safe-area-inset-top)) 16px 8px}
+header h1{font-size:20px;margin:0}
+header small{color:var(--mut);display:block;font-size:12px}
+.ib{background:var(--card);border:0;color:var(--tx);border-radius:12px;padding:8px 12px;font-size:16px}
+main{flex:1;overflow-y:auto;padding:8px 16px 16px}
+section[hidden]{display:none}
+.msg{max-width:88%;padding:10px 14px;border-radius:16px;margin:8px 0;white-space:pre-wrap}
+.bot{background:var(--card);border-bottom-left-radius:4px}
+.me{background:var(--acc);color:#0b0e20;margin-left:auto;border-bottom-right-radius:4px}
+.card{background:var(--card);border-radius:16px;padding:14px;margin:10px 0}
+.card h3{margin:0 0 4px;font-size:15px}
+.tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:99px;background:var(--card2);color:var(--acc2);margin-bottom:6px}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.btn{background:var(--acc);color:#0b0e20;border:0;border-radius:12px;padding:10px 14px;font-weight:600;font-size:15px}
+.btn.sec{background:var(--card2);color:var(--tx)}
+.mut{color:var(--mut);font-size:14px}
+#dock{display:flex;gap:8px;align-items:center;padding:8px 16px;border-top:1px solid var(--card)}
+#txt{flex:1;background:var(--card);border:0;color:var(--tx);border-radius:14px;padding:12px 14px;font-size:16px;outline:none}
+#mic{width:56px;height:56px;border-radius:50%;border:0;background:linear-gradient(135deg,var(--acc),var(--acc2));font-size:24px;color:#0b0e20}
+#mic.on{animation:pulse 1s infinite;background:var(--bad)}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,107,138,.6)}100%{box-shadow:0 0 0 18px rgba(255,107,138,0)}}
+nav{display:flex;padding:4px 8px calc(6px + env(safe-area-inset-bottom));background:var(--bg)}
+nav button{flex:1;background:none;border:0;color:var(--mut);padding:8px;font-size:12px}
+nav button.act{color:var(--acc2)}
+nav button span{display:block;font-size:20px}
+.overlay{position:fixed;inset:0;background:rgba(8,10,22,.94);display:flex;align-items:center;justify-content:center;padding:24px;z-index:10}
+.overlay[hidden]{display:none}
+.panel{max-width:420px;text-align:center}
+.orb{width:110px;height:110px;border-radius:50%;margin:0 auto 18px;background:radial-gradient(circle at 30% 30%,var(--acc2),var(--acc));animation:float 3s ease-in-out infinite}
+@keyframes float{50%{transform:translateY(-8px)}}
+.panel h2{margin:0 0 8px;font-size:26px}
+.panel .btn{width:100%;margin-top:10px;padding:14px;font-size:17px}
+ul.l{list-style:none;padding:0;margin:6px 0}
+ul.l li{padding:6px 0;border-bottom:1px solid var(--card2);display:flex;justify-content:space-between;gap:8px}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div><h1>Assistente</h1><small id="sub">aprendendo com você</small></div>
+    <button class="ib" id="vz" title="Resposta em voz">🔊</button>
+  </header>
+
+  <main>
+    <section id="tab-home">
+      <div id="homeSugs"></div>
+      <div id="chat"></div>
+    </section>
+    <section id="tab-ag" hidden>
+      <div id="agCards"></div>
+      <h3 style="margin:18px 0 0">Sugestões dos agentes</h3>
+      <div id="allSugs"></div>
+      <div class="row">
+        <button class="btn sec" id="demo">Carregar exemplo de uso</button>
+        <button class="btn sec" id="wipe">Apagar meus dados</button>
+      </div>
+    </section>
+    <section id="tab-hist" hidden>
+      <div class="card"><h3>Atividade em andamento</h3><div id="running" class="mut"></div></div>
+      <div class="card"><h3>Tarefas</h3><div id="tasks"></div></div>
+      <div class="card"><h3>Atividades recentes</h3><div id="acts"></div></div>
+      <div class="card"><h3>Rotinas aprendidas</h3><div id="routines"></div></div>
+    </section>
+  </main>
+
+  <div id="dock">
+    <input id="txt" placeholder="Fale ou digite um comando…" autocomplete="off">
+    <button id="mic" title="Falar">🎤</button>
+  </div>
+  <nav>
+    <button data-t="home" class="act"><span>💬</span>Início</button>
+    <button data-t="ag"><span>🧠</span>Agentes</button>
+    <button data-t="hist"><span>📋</span>Meu dia</button>
+  </nav>
+</div>
+
+<div class="overlay" id="welcome" hidden>
+  <div class="panel">
+    <div class="orb"></div>
+    <h2 id="wTitle">Olá!</h2>
+    <p id="wText" class="mut" style="font-size:17px"></p>
+    <div id="wExtra"></div>
+    <button class="btn" id="wYes">🎤 Sim, preciso de ajuda</button>
+    <button class="btn sec" id="wSugs">Ver sugestões dos agentes</button>
+    <button class="btn sec" id="wNo">Agora não</button>
+  </div>
+</div>
+
+<script>
+const $=s=>document.querySelector(s);
+const norm=t=>t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const KEY='assistente_v1', DAY=864e5;
+const blank=()=>({tasks:[],acts:[],log:[],routines:[],unknown:{},aliases:{},done:{},voice:true});
+let S=(()=>{try{return Object.assign(blank(),JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(e){return blank()}})();
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const fmtH=ms=>{const m=Math.round(ms/60000);return m<60?m+' min':Math.floor(m/60)+'h'+(m%60?String(m%60).padStart(2,'0'):'')};
+const hhmm=ts=>new Date(ts).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+
+/* ---------- conversa e voz ---------- */
+function speak(t){
+  if(!S.voice||!('speechSynthesis' in window))return;
+  try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='pt-BR';speechSynthesis.speak(u)}catch(e){}
+}
+function say(t,who='bot'){
+  const d=document.createElement('div');d.className='msg '+who;d.textContent=t;
+  $('#chat').appendChild(d);$('main').scrollTop=$('main').scrollHeight;
+  if(who==='bot')speak(t);
+}
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+function listen(){
+  if(!SR){say('Seu navegador não tem reconhecimento de voz. Use o campo de texto (no Chrome do Android a voz funciona).');$('#txt').focus();return}
+  const r=new SR();r.lang='pt-BR';r.interimResults=false;
+  r.onstart=()=>$('#mic').classList.add('on');
+  r.onend=()=>$('#mic').classList.remove('on');
+  r.onerror=e=>{$('#mic').classList.remove('on');say('Não consegui ouvir ('+e.error+'). Tente de novo ou digite.')};
+  r.onresult=e=>handle(e.results[0][0].transcript);
+  try{r.start()}catch(e){}
+}
+
+/* ---------- comandos ---------- */
+function parse(raw){
+  const clean=raw.trim().replace(/[.!?]+$/,'');
+  const t=norm(clean);
+  const arg=m=>clean.slice(clean.length-m.length);
+  if(S.aliases[t])return S.aliases[t];
+  let m;
+  if(m=t.match(/^(?:concluir|finalizar|conclui|feito|terminei a tarefa)\s+(.+)/))return{intent:'done',arg:arg(m[1])};
+  if(/^(terminei|parei|acabei|fim)\b/.test(t))return{intent:'stop'};
+  if((m=t.match(/^(?:adicionar |criar |nova |anotar )?tarefa:?\s+(.+)/))||(m=t.match(/^(?:preciso|tenho que|tenho de|lembrar de|lembra de|nao esquecer de)\s+(.+)/)))return{intent:'task',arg:arg(m[1])};
+  if(/(minhas tarefas|listar tarefas|lista de tarefas|o que falta|o que tenho)/.test(t))return{intent:'list'};
+  if(m=t.match(/^(?:nota|anotar|anota)\s+(.+)/))return{intent:'note',arg:arg(m[1])};
+  if(m=t.match(/^(?:estou|to|tou|comecei a|comecei|vou)\s+(.+)/))return{intent:'start',arg:arg(m[1])};
+  if(/(sugest|o que (voce )?aprendeu|como posso melhorar|melhorar)/.test(t))return{intent:'sugs'};
+  if(/(resumo|como foi meu dia)/.test(t))return{intent:'resumo'};
+  if(/^(ajuda|comandos|o que voce faz)/.test(t))return{intent:'help'};
+  return null;
+}
+function stopAct(){
+  const a=S.acts.find(x=>!x.end);if(!a)return null;
+  a.end=Date.now();return a;
+}
+function startAct(name){
+  const prev=stopAct();
+  S.acts.push({name,start:Date.now(),end:null});
+  say((prev?`Encerrei "${prev.name}" (${fmtH(prev.end-prev.start)}). `:'')+`Registrando: ${name}. Diga "terminei" quando acabar.`);
+}
+function addTask(t){S.tasks.push({text:t,created:Date.now(),done:null})}
+function pending(){return S.tasks.filter(t=>!t.done)}
+function exec(c,raw){
+  switch(c.intent){
+    case 'task':addTask(c.arg);say(`Tarefa anotada: ${c.arg}. Você tem ${pending().length} pendente(s).`);break;
+    case 'done':{
+      const k=norm(c.arg),t=pending().find(x=>norm(x.text).includes(k));
+      if(t){t.done=Date.now();say(`Concluída: ${t.text}. 👏`)}else say('Não achei essa tarefa pendente.');break}
+    case 'list':{
+      const p=pending();say(p.length?'Pendentes:\n'+p.map((t,i)=>`${i+1}. ${t.text}`).join('\n'):'Nenhuma tarefa pendente. Tudo em dia!');break}
+    case 'note':S.log.push({t:Date.now(),text:'📝 '+c.arg,intent:'note'});say('Nota guardada.');break;
+    case 'start':startAct(c.arg);break;
+    case 'stop':{const a=stopAct();say(a?`Registrado: "${a.name}" durou ${fmtH(a.end-a.start)}.`:'Nenhuma atividade em andamento.');break}
+    case 'sugs':{const s=suggest();say(s.length?`Tenho ${s.length} sugestão(ões). Abrindo a aba Agentes.`:'Ainda estou aprendendo. Use alguns dias e eu começo a sugerir melhorias.');setTab('ag');break}
+    case 'resumo':{
+      const t0=new Date().setHours(0,0,0,0),as=S.acts.filter(a=>a.start>=t0);
+      const tot=as.reduce((s,a)=>s+((a.end||Date.now())-a.start),0);
+      say(`Hoje: ${as.length} atividade(s), ${fmtH(tot)} registrados, ${S.tasks.filter(t=>t.done>=t0).length} tarefa(s) concluída(s), ${pending().length} pendente(s).`);break}
+    case 'help':say('Experimente dizer:\n• "tarefa comprar café"\n• "estou estudando inglês" / "terminei"\n• "concluir café"\n• "minhas tarefas"\n• "resumo do dia"\n• "sugestões"\n\nQuanto mais você usa, mais eu aprendo seus hábitos.');break;
+  }
+}
+function handle(raw){
+  raw=raw.trim();if(!raw)return;
+  say(raw,'me');
+  const c=parse(raw);
+  S.log.push({t:Date.now(),text:raw,intent:c?c.intent:'?'});
+  if(c)exec(c,raw);
+  else{
+    const k=norm(raw);const u=S.unknown[k]=S.unknown[k]||{raw,n:0};u.n++;
+    say(u.n>=2?'Isso de novo! Já aprendi que é importante. Veja a aba Agentes: posso salvar como atalho.':'Não entendi esse comando, mas guardei para aprender. Diga "ajuda" para ver o que sei fazer.');
+  }
+  save();renderAll();
+}
+
+/* ---------- agentes ---------- */
+function suggest(){
+  const out=[],now=Date.now();
+  // Agente de Rotina: atividades repetidas no mesmo horário
+  const g={};
+  S.acts.filter(a=>now-a.start<14*DAY).forEach(a=>{
+    const h=new Date(a.start).getHours(),k=norm(a.name)+'|'+h;
+    (g[k]=g[k]||{name:a.name,h,days:new Set()}).days.add(new Date(a.start).toDateString());
+  });
+  Object.values(g).forEach(x=>{
+    if(x.days.size>=3&&!S.routines.some(r=>norm(r.name)===norm(x.name)&&Math.abs(r.h-x.h)<=1))
+      out.push({id:'rot|'+norm(x.name)+x.h,agent:'Rotina',text:`Você costuma "${x.name}" por volta das ${x.h}h (${x.days.size} dias). Quer que eu te lembre todo dia?`,btn:'Criar rotina',
+        run:()=>{S.routines.push({name:x.name,h:x.h});say(`Rotina criada: "${x.name}" às ${x.h}h. Vou te avisar quando você abrir o app nesse horário.`)}});
+  });
+  // Agente de Hábitos: sessões longas sem pausa
+  S.acts.filter(a=>a.end&&now-a.start<3*DAY&&a.end-a.start>90*60000).slice(-1).forEach(a=>
+    out.push({id:'pausa|'+a.start,agent:'Hábitos',text:`"${a.name}" durou ${fmtH(a.end-a.start)} seguidos. Pausas de 10 min a cada 90 min ajudam o foco.`,btn:'Criar tarefa de pausa',
+      run:()=>{addTask('Fazer pausa de 10 min a cada 90 min');say('Adicionei o lembrete de pausa nas suas tarefas.')}}));
+  // Agente de Foco: acúmulo e tarefas paradas
+  const p=pending();
+  if(p.length>5)out.push({id:'foco|'+p.length,agent:'Foco',text:`Você tem ${p.length} tarefas pendentes. Que tal escolher só 3 para hoje?`,btn:'Ver tarefas',run:()=>exec({intent:'list'})});
+  p.filter(t=>now-t.created>3*DAY).slice(0,2).forEach(t=>
+    out.push({id:'velha|'+t.created,agent:'Foco',text:`"${t.text}" está parada há ${Math.floor((now-t.created)/DAY)} dias. Dividir em um primeiro passo pequeno?`,btn:'Criar 1º passo',
+      run:()=>{addTask('Primeiro passo: '+t.text);say('Criei um primeiro passo. Comece por ele.')}}));
+  // Agente de Comandos: frases não entendidas e repetidas
+  Object.entries(S.unknown).filter(([k,u])=>u.n>=2&&!S.aliases[k]).forEach(([k,u])=>
+    out.push({id:'alias|'+k,agent:'Comandos',text:`Você repetiu "${u.raw}" ${u.n} vezes e eu não entendi. Salvar como tarefa para eu aprender?`,btn:'Salvar atalho',
+      run:()=>{S.aliases[k]={intent:'task',arg:u.raw};say(`Aprendi: "${u.raw}" agora cria uma tarefa.`)}}));
+  return out.filter(s=>!(S.done[s.id]&&now-S.done[s.id]<7*DAY));
+}
+function dueRoutine(){
+  const h=new Date().getHours(),day=new Date().toDateString();
+  return S.routines.find(r=>Math.abs(r.h-h)<=1&&S.done['rt|'+norm(r.name)+day]!==1);
+}
+
+/* ---------- renderização ---------- */
+let SUGS=[];
+function sugCard(s,i){
+  return `<div class="card"><span class="tag">Agente de ${esc(s.agent)}</span><div>${esc(s.text)}</div>
+  <div class="row"><button class="btn" data-run="${i}">${esc(s.btn)}</button><button class="btn sec" data-skip="${i}">Dispensar</button></div></div>`;
+}
+function renderAll(){
+  SUGS=suggest();
+  $('#homeSugs').innerHTML=SUGS.slice(0,2).map((s,i)=>sugCard(s,i)).join('');
+  $('#allSugs').innerHTML=SUGS.length?SUGS.map(sugCard).join(''):'<p class="mut">Sem sugestões por enquanto. Use o app no dia a dia (registre atividades e tarefas) ou carregue o exemplo abaixo para ver os agentes em ação.</p>';
+  const nA=S.acts.length,nT=S.tasks.length;
+  $('#sub').textContent=`${nA} atividades · ${nT} tarefas · ${S.routines.length} rotinas aprendidas`;
+  const ag=[['Rotina','🔁','Descobre atividades que se repetem no mesmo horário e cria lembretes.',S.routines.length+' rotinas'],
+    ['Foco','🎯','Vigia acúmulo e tarefas paradas e sugere dividir.',pending().length+' pendentes'],
+    ['Hábitos','🌿','Observa sessões longas e sugere pausas.',S.acts.filter(a=>a.end).length+' sessões'],
+    ['Comandos','🗣️','Aprende frases novas que você usa.',Object.keys(S.aliases).length+' atalhos']];
+  $('#agCards').innerHTML=ag.map(a=>`<div class="card"><h3>${a[1]} Agente de ${a[0]}</h3><div class="mut">${a[2]}</div><div style="margin-top:6px;color:var(--acc2);font-size:13px">${a[3]}</div></div>`).join('');
+  const run=S.acts.find(a=>!a.end);
+  $('#running').textContent=run?`${run.name} — desde ${hhmm(run.start)}`:'Nada em andamento';
+  $('#tasks').innerHTML=S.tasks.length?'<ul class="l">'+S.tasks.slice(-12).reverse().map(t=>`<li><span style="${t.done?'text-decoration:line-through;color:var(--mut)':''}">${esc(t.text)}</span></li>`).join('')+'</ul>':'<span class="mut">Nenhuma ainda.</span>';
+  $('#acts').innerHTML=S.acts.length?'<ul class="l">'+S.acts.slice(-10).reverse().map(a=>`<li><span>${esc(a.name)}</span><span class="mut">${hhmm(a.start)} · ${a.end?fmtH(a.end-a.start):'agora'}</span></li>`).join('')+'</ul>':'<span class="mut">Nenhuma ainda.</span>';
+  $('#routines').innerHTML=S.routines.length?'<ul class="l">'+S.routines.map(r=>`<li><span>${esc(r.name)}</span><span class="mut">~${r.h}h</span></li>`).join('')+'</ul>':'<span class="mut">Ainda aprendendo seus horários.</span>';
+  $('#vz').textContent=S.voice?'🔊':'🔇';
+}
+function setTab(t){
+  ['home','ag','hist'].forEach(x=>$('#tab-'+x).hidden=x!==t);
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('act',b.dataset.t===t));
+}
+
+/* ---------- eventos ---------- */
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.run!==undefined){const s=SUGS[+b.dataset.run];s.run();S.done[s.id]=Date.now();save();renderAll();setTab('home')}
+  if(b.dataset.skip!==undefined){S.done[SUGS[+b.dataset.skip].id]=Date.now();save();renderAll()}
+  if(b.dataset.t)setTab(b.dataset.t);
+});
+$('#mic').onclick=listen;
+$('#txt').addEventListener('keydown',e=>{if(e.key==='Enter'){handle(e.target.value);e.target.value=''}});
+$('#vz').onclick=()=>{S.voice=!S.voice;if(!S.voice)try{speechSynthesis.cancel()}catch(e){}save();renderAll()};
+$('#wNo').onclick=()=>$('#welcome').hidden=true;
+$('#wYes').onclick=()=>{$('#welcome').hidden=true;setTab('home');say('Estou ouvindo. O que você precisa?');listen()};
+$('#wSugs').onclick=()=>{$('#welcome').hidden=true;setTab('ag')};
+$('#wipe').onclick=()=>{if(confirm('Apagar tudo que o app aprendeu?')){S=blank();save();$('#chat').innerHTML='';renderAll()}};
+$('#demo').onclick=()=>{
+  const now=Date.now();
+  for(let d=1;d<=5;d++){
+    const s1=new Date(now-d*DAY).setHours(8,5,0,0);S.acts.push({name:'estudando inglês',start:s1,end:s1+45*60000});
+    const s2=new Date(now-d*DAY).setHours(18,10,0,0);S.acts.push({name:'treinando',start:s2,end:s2+50*60000});
+  }
+  const s3=new Date(now-DAY).setHours(13,0,0,0);S.acts.push({name:'trabalhando no relatório',start:s3,end:s3+130*60000});
+  S.tasks.push({text:'renovar documento do carro',created:now-6*DAY,done:null});
+  S.unknown[norm('ligar pro contador')]={raw:'ligar pro contador',n:2};
+  save();renderAll();say('Carreguei um exemplo de uso. Veja as sugestões que os agentes geraram.');
+};
+
+/* ---------- abertura: "precisa de ajuda?" ---------- */
+function openWelcome(){
+  const h=new Date().getHours(),sal=h<12?'Bom dia':h<18?'Boa tarde':'Boa noite';
+  const r=dueRoutine(),n=SUGS.length,p=pending().length;
+  $('#wTitle').textContent=sal+'!';
+  let txt='Você precisa de ajuda com alguma coisa?';
+  if(r)txt=`Normalmente por volta das ${r.h}h você faz "${r.name}". Quer que eu comece a registrar? Ou precisa de ajuda com outra coisa?`;
+  else if(n)txt=`Precisa de ajuda? Aprendi algumas coisas sobre sua rotina e tenho ${n} sugestão(ões) para você.`;
+  else if(p)txt=`Precisa de ajuda? Você tem ${p} tarefa(s) pendente(s).`;
+  $('#wText').textContent=txt;
+  $('#wExtra').innerHTML=r?'<button class="btn" id="wRt">▶ Começar "'+esc(r.name)+'"</button>':'';
+  const rb=$('#wRt');if(rb)rb.onclick=()=>{S.done['rt|'+norm(r.name)+new Date().toDateString()]=1;$('#welcome').hidden=true;startAct(r.name);save();renderAll()};
+  $('#welcome').hidden=false;
+  speak(sal+'! '+txt);
+}
+renderAll();
+say('Oi! Eu aprendo com o que você faz no dia a dia. Toque no microfone e diga, por exemplo: "estou estudando inglês" ou "tarefa comprar café". Diga "ajuda" para ver tudo.');
+openWelcome();
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
